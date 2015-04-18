@@ -1,9 +1,10 @@
 (in-package :expansion-handlers)
 
-(define-symbol-macro accumulate (gensym))
-(define-symbol-macro iter-block (gensym))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (define-symbol-macro accumulate (gensym))
+  (define-symbol-macro iter-block (gensym))
 
-(define-condition accumulate-target () ((name :initarg :name :reader name)))
+  (define-condition accumulate-target () ((name :initarg :name :reader name))))
 
 (defmacro while (condition)
   `(unless ,condition
@@ -15,35 +16,9 @@
       (expansion-signal 'accumulate-target env :name into)
       `(push ,thing accumulate)))
 
-(defmacro iter (&body body &environment env)
-  (alexandria:with-gensyms (start)
-    (let ((accum (gensym)))
-      (expansion-handler-case
-       `(symbol-macrolet ((iter-block (gensym)))
-          (block iter-block
-            (let ((,accum nil))
-              (tagbody
-                 ,start
-                 ,@body
-                 (go ,start)))))
-       env
-       ;; handler
-       (accumulate-target (c)
-                          (let ((accum (name c)))
-                            `(symbol-macrolet ((accumulate ',accum)
-                                               (iter-block (gensym)))
-                               (block ,iter-block
-                                 (let ((,accum nil))
-                                   (macrolet ((collect (thing &key into)
-                                                `(push ,thing ,',accum)))
-                                     (tagbody
-                                        ,start
-                                        ,@body
-                                        (go ,start))))))))))))
-
+#+nil
 (let ((stuff (list (list (list 'accumulate-target 'barf)))))
   (find-if #'identity (first stuff) :key #'rest))
-
 
 ;; what we want expansion-handler-case to expand into as a helper macro
 #+nil
@@ -131,23 +106,34 @@
              (go ,start))))
      env
      `(accumulate-target (c)
-                        (let ((accm (name c)))
-                          `(symbol-macrolet ((accumulate ,accm))
-                             (block iter-block
-                               (let ((,accm nil))
-                                 (macrolet ((collect (thing &key into)
-                                              (declare (ignorable into))
-                                              `(push ,thing ,',accm)))
-                                   (tagbody
-                                      ,',start
-                                      ,@',body
-                                      (go ,',start)))))))))))
+                         (let ((accm (name c)))
+                           `(symbol-macrolet ((accumulate ,accm))
+                              (block iter-block
+                                (let ((,accm nil))
+                                  (macrolet ((collect (thing &key into)
+                                               (declare (ignorable into))
+                                               `(push ,thing ,',accm)))
+                                    (tagbody
+                                       ,',start
+                                       ,@',body
+                                       (go ,',start)))))))))))
 
+#+nil
 (defun do-iter (i)
   (iter (while (< i 5))
         (incf i)
         (print acc)
         (collect (+ 3 (* 4 i)) :into acc)))
+
+(defun do-iter (i)
+  (iter (while (< i 5))
+        (incf i)
+        (print acc)
+        
+        ;; we can do this too
+        (macrolet ((my-collect (&rest args)
+                     `(collect ,@args)))
+          (my-collect (+ 3 (* 4 i)) :into acc))))
 
 ;; since the first candidate expansion must be expanded to extract
 ;; the info we need, we see its warnings:
@@ -160,15 +146,6 @@
 ;   Undefined variable:
 ;     ACC
 ;   caught 1 WARNING condition
-
-#+nil
-(defun do-iter (i)
-  (iter (while (< i 5))
-        (incf i)
-        (print acc)
-        (macrolet ((my-collect (&rest args)
-                     `(collect ,@args)))
-          (my-collect (+ 3 (* 4 i)) :into acc))))
 
 #+nil
 (do-iter 0)

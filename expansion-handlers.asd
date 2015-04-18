@@ -11,7 +11,9 @@
   ((:static-file "expansion-handlers.asd")
    (:module :src
             :components ((:file "package")
-                         (:file "expansion-handlers"))
+                         (:file "expansion-handlers")
+                         (:file "usage")
+                         )
             :serial t))
   :depends-on (:alexandria))
 
