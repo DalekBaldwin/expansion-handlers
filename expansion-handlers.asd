@@ -13,7 +13,7 @@
             :components ((:file "package")
                          (:file "expansion-handlers"))
             :serial t))
-  :depends-on ())
+  :depends-on (:alexandria))
 
 (defsystem :expansion-handlers-test
   :name "expansion-handlers-test"

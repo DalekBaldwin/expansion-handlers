@@ -1,7 +1,7 @@
 (in-package :cl-user)
 
 (defpackage :expansion-handlers
-  (:use :cl))
+  (:use :cl :alexandria))
 
 (in-package :expansion-handlers)
 

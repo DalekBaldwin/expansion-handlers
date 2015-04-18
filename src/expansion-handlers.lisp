@@ -1,5 +1,5 @@
 (in-package :expansion-handlers)
-
+#+nil
 (defmacro expansion-handler-case (form env &rest cases)
   (let ((typespecs
          (list (loop for (typespec vars body) in cases
@@ -26,8 +26,8 @@
 
 (defmacro expansion-handler-case (form env &rest cases)
   (let ((typespecs
-         `(list (list ,@(loop for (typespec vars body) in cases
-                           collect `(list ',typespec))))))
+         `(list (list ,@(loop for (quasi (typespec vars body)) in cases
+                        collect `(list ',typespec))))))
     `(multiple-value-bind (expansion expanded-p)
          (macroexpand-1 'handlers ,env)
        `(symbol-macrolet ((handlers
@@ -48,7 +48,7 @@
                                                       (first signalled) ;; condition type
                                                       (second signalled) ;; first arg set
                                                       )
-                                   ,@',cases
+                                   ,,@cases
                                    )
                                  `(candidate-expansion))))))
               (handle-signals)))))))
